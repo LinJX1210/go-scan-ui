@@ -36,6 +36,7 @@ func New(cfg Config) http.Handler {
 	mux.HandleFunc("POST /api/scan", s.auth(s.handleScan))
 	mux.HandleFunc("GET /api/scan/{id}/events", s.auth(s.handleEvents))
 	mux.HandleFunc("POST /api/scan/{id}/stop", s.auth(s.handleStop))
+	mux.HandleFunc("POST /api/tools/preview", s.auth(s.handleToolPreview))
 	mux.Handle("GET /", http.FileServerFS(cfg.Static))
 	return securityHeaders(mux)
 }
@@ -76,6 +77,10 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) handleToolPreview(w http.ResponseWriter, r *http.Request) {
+	writeErr(w, http.StatusForbidden, "此版本仅提供离线演示，不生成或执行外部工具命令")
+}
+
 func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 	var o nmap.Options
 	if err := decode(r, &o); err != nil {
@@ -91,7 +96,7 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 }
 
 type scanRequest struct {
-	Mode   string             `json:"mode"` // native | nmap
+	Mode   string             `json:"mode"` // native | nmap | dir | tool
 	Native scan.NativeOptions `json:"native"`
 	Nmap   nmap.Options       `json:"nmap"`
 }
@@ -125,6 +130,10 @@ func (s *Server) handleScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		run = func(ctx context.Context, emit scan.Emitter) error { return nmap.Run(ctx, o, emit) }
+	case "dir", "tool":
+		// 服务端也拒绝执行，不能通过绕过前端恢复真实扫描。
+		writeErr(w, http.StatusForbidden, "此模式仅提供浏览器内离线演示，不执行真实扫描")
+		return
 	default:
 		writeErr(w, http.StatusBadRequest, "未知的扫描模式")
 		return

@@ -67,3 +67,10 @@ td.banner{color:var(--muted);font-size:12px;word-break:break-all;max-width:520px
 @media (max-width:900px){.layout{grid-template-columns:1fr;height:auto}.results{min-height:500px}}
 *{scrollbar-width:thin;scrollbar-color:#2c3a4b transparent}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#2c3a4b;border-radius:4px}::-webkit-scrollbar-track{background:transparent}
+
+/* Keep local demo previews readable and contain table scrolling on small screens. */
+.panel{min-width:0}
+.cmd code{white-space:pre-wrap;overflow-wrap:anywhere}
+.tab{white-space:nowrap;padding:8px 5px}
+.view table{min-width:650px}
+@media(max-width:600px){.topbar{align-items:flex-start;gap:12px}.brand{flex-shrink:0}.env{text-align:right}.res-actions{flex-wrap:wrap;max-width:100%}.res-actions input{flex:1;min-width:110px}.stats{gap:10px;flex-wrap:wrap}.host-grid{grid-template-columns:minmax(0,1fr)}}

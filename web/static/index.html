@@ -17,6 +17,8 @@
   <div class="tabs">
     <button class="tab active" data-mode="native">原生扫描</button>
     <button class="tab" data-mode="nmap">Nmap 模式</button>
+    <button class="tab" data-mode="dir">目录演示</button>
+    <button class="tab" data-mode="tool">工具演示</button>
   </div>
   <label class="field">
     <span>目标 <small>IP / CIDR / 范围 / 域名，逗号或换行分隔</small></span>
@@ -138,9 +140,52 @@
       <label class="field"><span>额外参数 <small>高级，禁止输出/读文件类参数</small></span><input id="m-extra" type="text" placeholder="如 --min-hostgroup 64"></label>
     </fieldset>
   </form>
+  <form id="form-dir" class="mode-form hidden" autocomplete="off">
+    <fieldset><legend>目标 URL</legend>
+      <input id="d-url" type="text" value="http://127.0.0.1:8080" readonly aria-label="固定演示地址">
+      <p class="hint">离线界面演示：参数只用于预览；固定模拟路径，不发送 HTTP 请求。</p>
+    </fieldset>
+    <fieldset><legend>字典</legend>
+      <select id="d-wordlist-mode">
+        <option value="builtin">内置示例路径（固定模拟输出）</option>
+        <option value="custom">自定义字典…</option>
+      </select>
+      <textarea id="d-wordlist" rows="4" class="hidden" placeholder="每行一个路径，如：&#10;admin&#10;backup&#10;config.php"></textarea>
+    </fieldset>
+    <fieldset><legend>扩展名</legend>
+      <input id="d-ext" type="text" placeholder="php,html,txt,bak（逗号分隔，可留空）">
+    </fieldset>
+    <fieldset><legend>性能与匹配</legend>
+      <div class="row">
+        <label class="field small"><span>并发</span><input id="d-threads" type="number" min="1" max="200" value="20"></label>
+        <label class="field small"><span>超时 (ms)</span><input id="d-timeout" type="number" min="500" max="30000" value="8000"></label>
+      </div>
+      <label class="field"><span>命中状态码 <small>逗号分隔</small></span><input id="d-codes" type="text" value="200,204,301,302,307,401,403"></label>
+      <label class="check"><input type="checkbox" id="d-redir"> 跟随重定向</label>
+    </fieldset>
+  </form>
+
+  <form id="form-tool" class="mode-form hidden" autocomplete="off">
+    <fieldset><legend>工具</legend>
+      <select id="t-tool"></select>
+      <p class="hint" id="t-desc"></p>
+      <p class="hint" id="t-status"></p>
+    </fieldset>
+    <fieldset><legend>目标</legend>
+      <input id="t-target" type="text" value="http://127.0.0.1:8080" readonly aria-label="固定演示地址">
+    </fieldset>
+    <fieldset id="t-wl-box"><legend>字典（gobuster，可选）</legend>
+      <input id="t-wordlist" type="text" placeholder="/usr/share/wordlists/dirb/common.txt">
+    </fieldset>
+    <fieldset><legend>高级参数（可选）</legend>
+      <input id="t-extra" type="text" placeholder="附加参数，禁止输出/脚本类">
+    </fieldset>
+    <p class="hint">离线演示无需安装工具。工具选择与参数只影响预览；不执行命令、不读字典文件。</p>
+  </form>
+
 
   <div class="cmd">
-    <div class="cmd-head"><span>将执行的命令</span><button type="button" id="copy-cmd" class="link">复制</button></div>
+    <div class="cmd-head"><span id="preview-label">将执行的命令</span><button type="button" id="copy-cmd" class="link">复制</button></div>
     <code id="cmd-preview">—</code>
   </div>
   <div class="actions">
@@ -150,6 +195,7 @@
 </section>
 
 <section class="panel results">
+  <p id="result-note" class="notice hidden" role="status">模拟数据 · 未执行网络扫描或外部工具；下方主机、端口和日志均为固定示例，不代表检测结论。</p>
   <div class="res-head">
     <div class="stats">
       <span>主机 <b id="st-hosts">0</b></span>
