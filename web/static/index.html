@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Go Scan UI</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">◎</span> Go Scan UI</div>
+  <div class="env" id="env">检测环境中…</div>
+</header>
+<div class="notice">⚠ 仅可扫描你拥有或已获得书面授权的目标。未经授权的扫描可能违法。</div>
+<main class="layout">
+<section class="panel config">
+  <div class="tabs">
+    <button class="tab active" data-mode="native">原生扫描</button>
+    <button class="tab" data-mode="nmap">Nmap 模式</button>
+  </div>
+  <label class="field">
+    <span>目标 <small>IP / CIDR / 范围 / 域名，逗号或换行分隔</small></span>
+    <textarea id="targets" rows="2" placeholder="192.168.1.0/24, 10.0.0.1-20, example.com"></textarea>
+  </label>
+
+  <form id="form-native" class="mode-form" autocomplete="off">
+    <fieldset><legend>端口</legend>
+      <select id="n-port-preset">
+        <option value="common">常用端口（23 个）</option>
+        <option value="1-1024">1-1024</option>
+        <option value="web">Web 端口</option>
+        <option value="db">数据库端口</option>
+        <option value="1-65535">全部端口 1-65535</option>
+        <option value="custom">自定义…</option>
+      </select>
+      <input id="n-ports" type="text" placeholder="22,80,443,8000-8100">
+    </fieldset>
+    <fieldset><legend>性能</legend>
+      <div class="row">
+        <label class="field small"><span>超时 (ms)</span><input id="n-timeout" type="number" min="100" max="10000" value="800"></label>
+        <label class="field small"><span>并发数</span><input id="n-conc" type="number" min="1" max="2000" value="200"></label>
+      </div>
+    </fieldset>
+    <fieldset><legend>选项</legend>
+      <label class="check"><input type="checkbox" id="n-discovery"> 先做存活探测，只扫描存活主机</label>
+      <label class="check"><input type="checkbox" id="n-banner" checked> 抓取服务 Banner</label>
+      <label class="check"><input type="checkbox" id="n-closed"> 显示关闭 / 被过滤的端口</label>
+    </fieldset>
+    <p class="hint">原生模式使用 TCP 全连接扫描，不依赖 nmap，也不需要 root。</p>
+  </form>
+
+  <form id="form-nmap" class="mode-form hidden" autocomplete="off">
+    <fieldset><legend>预设</legend>
+      <div class="presets">
+        <button type="button" data-preset="quick">快速扫描</button>
+        <button type="button" data-preset="discover">主机发现</button>
+        <button type="button" data-preset="service">服务识别</button>
+        <button type="button" data-preset="full">全面扫描</button>
+        <button type="button" data-preset="vuln">漏洞脚本</button>
+      </div>
+    </fieldset>
+    <fieldset><legend>扫描技术</legend>
+      <select id="m-type">
+        <option value="sT">-sT  TCP 全连接（无需 root）</option>
+        <option value="sS">-sS  TCP SYN 半开放（需 root，速度快）</option>
+        <option value="sU">-sU  UDP 扫描（需 root，较慢）</option>
+        <option value="sn">-sn  仅主机发现（不扫端口）</option>
+        <option value="sA">-sA  ACK 扫描（探测防火墙规则）</option>
+        <option value="sW">-sW  Window 扫描</option>
+        <option value="sM">-sM  Maimon 扫描</option>
+        <option value="sN">-sN  NULL 扫描</option>
+        <option value="sF">-sF  FIN 扫描</option>
+        <option value="sX">-sX  Xmas 扫描</option>
+      </select>
+      <label class="check"><input type="checkbox" id="m-udp"> 同时扫描 UDP（-sU）</label>
+    </fieldset>
+    <fieldset><legend>端口</legend>
+      <select id="m-port-mode">
+        <option value="default">默认（最常见 1000 个）</option>
+        <option value="fast">快速 -F（最常见 100 个）</option>
+        <option value="top">Top N 端口 --top-ports</option>
+        <option value="list">指定端口 -p</option>
+        <option value="all">全部端口 -p-</option>
+      </select>
+      <input id="m-top" type="number" min="1" max="65535" value="200" class="hidden">
+      <input id="m-ports" type="text" placeholder="22,80,443 或 U:53,T:1-1024" class="hidden">
+    </fieldset>
+    <fieldset><legend>主机发现</legend>
+      <label class="check"><input type="checkbox" id="m-pn"> -Pn 跳过 ping，视所有主机为在线</label>
+      <label class="check"><input type="checkbox" id="m-n"> -n 不做 DNS 解析</label>
+    </fieldset>
+    <fieldset><legend>服务与系统探测</legend>
+      <label class="check"><input type="checkbox" id="m-sv"> -sV 服务版本探测</label>
+      <label class="field small indent"><span>版本探测强度</span>
+        <select id="m-vi"><option value="-1">默认 (7)</option><option value="0">0 轻量</option><option value="2">2</option><option value="5">5</option><option value="9">9 全部探针</option></select>
+      </label>
+      <label class="check"><input type="checkbox" id="m-os"> -O 操作系统识别（需 root）</label>
+      <label class="check"><input type="checkbox" id="m-a"> -A 全面探测（-sV -O -sC --traceroute）</label>
+      <label class="check"><input type="checkbox" id="m-tr"> --traceroute 路由追踪</label>
+    </fieldset>
+    <fieldset><legend>NSE 脚本</legend>
+      <label class="check"><input type="checkbox" id="m-sc"> -sC 默认脚本</label>
+      <div class="scripts" id="m-scripts">
+        <label class="check"><input type="checkbox" value="banner"> banner</label>
+        <label class="check"><input type="checkbox" value="http-title"> http-title</label>
+        <label class="check"><input type="checkbox" value="http-headers"> http-headers</label>
+        <label class="check"><input type="checkbox" value="ssl-cert"> ssl-cert</label>
+        <label class="check"><input type="checkbox" value="ssh-auth-methods"> ssh-auth-methods</label>
+        <label class="check"><input type="checkbox" value="ftp-anon"> ftp-anon</label>
+        <label class="check"><input type="checkbox" value="smb-os-discovery"> smb-os-discovery</label>
+        <label class="check"><input type="checkbox" value="vuln"> vuln（漏洞类）</label>
+      </div>
+      <input id="m-script-custom" type="text" placeholder="其他脚本，逗号分隔，如 dns-brute,mysql-info">
+      <input id="m-script-args" type="text" placeholder="--script-args，如 http.useragent=test">
+    </fieldset>
+    <fieldset><legend>时序与性能</legend>
+      <select id="m-timing">
+        <option value="-1">默认时序</option>
+        <option value="0">-T0 偏执（极慢，规避 IDS）</option>
+        <option value="1">-T1 鬼祟</option>
+        <option value="2">-T2 礼貌</option>
+        <option value="3">-T3 正常</option>
+        <option value="4" selected>-T4 激进（推荐）</option>
+        <option value="5">-T5 疯狂</option>
+      </select>
+      <div class="row">
+        <label class="field small"><span>--min-rate</span><input id="m-minrate" type="number" min="0" placeholder="包/秒"></label>
+        <label class="field small"><span>--max-retries</span><input id="m-retries" type="number" min="0" max="50" placeholder="默认"></label>
+        <label class="field small"><span>--host-timeout</span><input id="m-htimeout" type="text" placeholder="如 5m"></label>
+      </div>
+    </fieldset>
+    <fieldset><legend>其他</legend>
+      <label class="check"><input type="checkbox" id="m-open" checked> --open 只显示开放端口</label>
+      <label class="check"><input type="checkbox" id="m-reason"> --reason 显示端口状态原因</label>
+      <label class="check"><input type="checkbox" id="m-v"> -v 详细输出</label>
+      <label class="check"><input type="checkbox" id="m-f"> -f 分片数据包（需 root）</label>
+      <label class="check"><input type="checkbox" id="m-6"> -6 IPv6</label>
+      <label class="field"><span>额外参数 <small>高级，禁止输出/读文件类参数</small></span><input id="m-extra" type="text" placeholder="如 --min-hostgroup 64"></label>
+    </fieldset>
+  </form>
+
+  <div class="cmd">
+    <div class="cmd-head"><span>将执行的命令</span><button type="button" id="copy-cmd" class="link">复制</button></div>
+    <code id="cmd-preview">—</code>
+  </div>
+  <div class="actions">
+    <button id="btn-start" class="primary">开始扫描</button>
+    <button id="btn-stop" class="danger" disabled>停止</button>
+  </div>
+</section>
+
+<section class="panel results">
+  <div class="res-head">
+    <div class="stats">
+      <span>主机 <b id="st-hosts">0</b></span>
+      <span>开放端口 <b id="st-open">0</b></span>
+      <span>状态 <b id="st-status">空闲</b></span>
+    </div>
+    <div class="res-actions">
+      <input id="filter" type="search" placeholder="筛选结果…">
+      <button id="exp-csv">导出 CSV</button>
+      <button id="exp-json">导出 JSON</button>
+    </div>
+  </div>
+  <div class="progress"><div id="bar"></div></div>
+  <div class="sub-tabs">
+    <button class="stab active" data-view="table">结果表格</button>
+    <button class="stab" data-view="hosts">主机</button>
+    <button class="stab" data-view="log">原始输出</button>
+  </div>
+  <div class="view" id="view-table">
+    <table>
+      <thead><tr><th data-sort="host">主机</th><th data-sort="port">端口</th><th>协议</th><th data-sort="state">状态</th><th data-sort="service">服务</th><th>版本 / Banner</th></tr></thead>
+      <tbody id="tbody"><tr class="empty"><td colspan="6">暂无结果</td></tr></tbody>
+    </table>
+  </div>
+  <div class="view hidden" id="view-hosts"><div id="hosts" class="host-grid"><p class="empty-text">暂无主机</p></div></div>
+  <div class="view hidden" id="view-log"><pre id="log"></pre></div>
+</section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
